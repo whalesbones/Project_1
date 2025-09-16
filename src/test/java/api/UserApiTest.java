@@ -7,15 +7,13 @@ import org.junit.Test;
 import pojo.User;
 import pojo.UserCredentials;
 import steps.UserSteps;
+import static generator.UserGenerator.*;
 
 import static org.hamcrest.Matchers.*;
 
 public class UserApiTest {
 
     private final UserSteps userSteps = new UserSteps();
-    private final String email = "testuser" + System.currentTimeMillis() + "@yandex.ru";
-    private final String password = "password123";
-    private final String name = "Test User";
     private String accessToken;
 
     private User user;
@@ -23,8 +21,9 @@ public class UserApiTest {
 
     @Before
     public void setUp() {
-        user = new User(email, password, name);
-        credentials = new UserCredentials(email, password);
+        user = generate();
+        credentials = new UserCredentials(user.getEmail(), user.getPassword());
+
     }
 
     @Test
@@ -35,9 +34,9 @@ public class UserApiTest {
                 .and()
                 .body("success", equalTo(true))
                 .and()
-                .body("user.email", equalTo(email))
+                .body("user.email", equalTo(user.getEmail()))
                 .and()
-                .body("user.name", equalTo(name));
+                .body("user.name", equalTo(user.getName()));
 
         accessToken = response.extract().path("accessToken");
     }
@@ -66,7 +65,7 @@ public class UserApiTest {
                 .and()
                 .body("success", equalTo(true))
                 .and()
-                .body("user.email", equalTo(email));
+                .body("user.email", equalTo(user.getEmail()));
 
         accessToken = response.extract().path("accessToken");
     }
@@ -74,7 +73,7 @@ public class UserApiTest {
     @Test
     public void login_WrongPassword_Failure() {
         userSteps.createUser(user);
-        UserCredentials wrongCreds = new UserCredentials(email, "wrongpass");
+        UserCredentials wrongCreds = new UserCredentials(user.getEmail(), "wrongpass");
         ValidatableResponse response = userSteps.login(wrongCreds);
         response.assertThat()
                 .statusCode(401)
@@ -89,7 +88,7 @@ public class UserApiTest {
         ValidatableResponse createResponse = userSteps.createUser(user);
         accessToken = createResponse.extract().path("accessToken");
 
-        User updatedUser = new User(email, password, "New Name");
+        User updatedUser = new User(user.getEmail(), user.getPassword(), "New Name");
         ValidatableResponse updateResponse = userSteps.updateUser(updatedUser, accessToken);
         updateResponse.assertThat()
                 .statusCode(200)
@@ -101,7 +100,7 @@ public class UserApiTest {
 
     @Test
     public void updateUser_Unauthorized_Failure() {
-        User updatedUser = new User(email, password, "New Name");
+        User updatedUser = new User(user.getEmail(), user.getPassword(), "New Name");
         ValidatableResponse response = userSteps.updateUser(updatedUser, null);
         response.assertThat()
                 .statusCode(401)

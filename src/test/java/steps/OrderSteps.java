@@ -1,20 +1,30 @@
 package steps;
 
 import io.qameta.allure.Step;
+import io.restassured.RestAssured;
+import io.restassured.response.Response;
 import io.restassured.response.ValidatableResponse;
 import pojo.Order;
-
-import java.util.List;
-
+import io.restassured.specification.RequestSpecification;
 import static io.restassured.RestAssured.given;
 
 public class OrderSteps {
 
-    private static final String BASE_URL = "https://stellarburgers.nomoreparties.site";
+
+
+    public OrderSteps() {
+        RestAssured.baseURI = "https://stellarburgers.nomoreparties.site";
+    }
+
+    public static Response getIngredientsWithoutAuth() {
+        return given()
+                .header("Content-Type", "application/json")
+                .get("/api/ingredients");
+    }
 
     @Step("Создание заказа")
     public ValidatableResponse createOrder(Order order, String token) {
-        io.restassured.specification.RequestSpecification request = given()
+       RequestSpecification request = given()
                 .header("Content-type", "application/json")
                 .and()
                 .body(order);
@@ -24,7 +34,7 @@ public class OrderSteps {
         }
 
         return request.when()
-                .post(BASE_URL + "/api/orders")
+                .post("/api/orders")
                 .then();
     }
 
@@ -33,7 +43,7 @@ public class OrderSteps {
         return given()
                 .header("Authorization", token)
                 .when()
-                .get(BASE_URL + "/api/orders")
+                .get( "/api/orders")
                 .then();
     }
 }
