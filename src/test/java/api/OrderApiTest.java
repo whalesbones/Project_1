@@ -20,6 +20,7 @@ import pojo.UserCredentials;
 import steps.OrderSteps;
 import steps.UserSteps;
 import static generator.UserGenerator.*;
+import com.github.javafaker.Faker;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -28,7 +29,7 @@ import java.util.List;
 import static org.hamcrest.Matchers.*;
 
 public class OrderApiTest {
-
+    private static final Faker faker = new Faker();
     private final UserSteps userSteps = new UserSteps();
     private final OrderSteps orderSteps = new OrderSteps();
     private final UserGenerator userGenerator = new UserGenerator();
@@ -47,6 +48,7 @@ public class OrderApiTest {
         }
         return allIngredients;
     }
+
 
 
     private String getIngredientByType(List<Ingredient> ingredients, String type) {
@@ -78,7 +80,7 @@ public class OrderApiTest {
     public void createOrder_Success() {
         List<Ingredient> ingredients = loadAllIngredients();
 
-        // 🔍 Логируем все ингредиенты
+        // Логируем все ингредиенты
         System.out.println("Total ingredients loaded: " + ingredients.size());
         for (int i = 0; i < ingredients.size(); i++) {
             Ingredient ing = ingredients.get(i);
@@ -100,7 +102,14 @@ public class OrderApiTest {
                 .assertThat()
                 .statusCode(200)
                 .body("success", equalTo(true))
-                .body("order.number", notNullValue());
+                .body("order.number", notNullValue())
+                .body("order.ingredients", notNullValue())
+                .body("order.status", notNullValue())
+                .body("order.name", notNullValue())
+                .body("order.createdAt", notNullValue())
+                .body("order.updatedAt", notNullValue())
+                .body("order.price", greaterThan(0));
+
     }
 
     @Test
@@ -124,30 +133,29 @@ public class OrderApiTest {
     }
 
     @Test
-    public void createOrder_Success() {
-        List<Ingredient> ingredients = loadAllIngredients();
+    public void createOrderUnauthorizedFailure() {
+        String invalidIngredientId = String.valueOf(faker.number().randomNumber());
 
-        // 🔍 Логируем все ингредиенты
-        System.out.println("Total ingredients loaded: " + ingredients.size());
-        for (int i = 0; i < ingredients.size(); i++) {
-            Ingredient ing = ingredients.get(i);
-            System.out.println("Index " + i + ": ID=" + ing.getId() + ", Name=" + ing.getName() + ", Type=" + ing.getType());
-        }
+        Order order = new Order(Collections.singletonList(invalidIngredientId));
 
-        if (ingredients.size() < 3) {
-            throw new IllegalStateException("Not enough ingredients!");
-        }
+        orderSteps.createOrderWithoutAuth(order)
+                .assertThat()
+                .statusCode(500);
+    }
 
-        // Берём один ингредиент каждого типа
-        String bunId = getIngredientByType(ingredients, "bun");
-        String sauceId = getIngredientByType(ingredients, "sauce");
-
-        Order order = new Order(Arrays.asList(bunId, sauceId));
+    @Test
+    public void createOrderNotEnoughIngredients() {
+        Order order = new Order(Collections.emptyList());
 
         orderSteps.createOrder(order, accessToken)
                 .assertThat()
-                .statusCode(200)
-                .body("success", equalTo(true))
-                .body("order.number", notNullValue());
+                .statusCode(400)
+                .body("success", equalTo(false))
+                .body("message", notNullValue());
+    }
+
+    @After
+    public void tearDown() {
+        userSteps.deleteUser(accessToken);
     }
 }
