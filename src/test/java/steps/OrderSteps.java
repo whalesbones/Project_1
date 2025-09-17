@@ -15,6 +15,9 @@ public class OrderSteps {
     public OrderSteps() {
         RestAssured.baseURI = "https://stellarburgers.nomoreparties.site";
     }
+    public ValidatableResponse createOrderWithoutAuth(Order order) {
+        return createOrder(order, null);
+    }
 
     public static Response getIngredientsWithoutAuth() {
         return given()
